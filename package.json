@@ -26,7 +26,7 @@
     "web-vitals": "^1.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "serve -s build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -50,6 +50,7 @@
     ]
   },
   "devDependencies": {
-    "@reatom/debug": "^1.2.0"
+    "@reatom/debug": "^1.2.0",
+    "serve": "^11.3.2"
   }
 }
