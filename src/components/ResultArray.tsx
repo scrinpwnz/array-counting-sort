@@ -1,4 +1,4 @@
-import { makeStyles, Paper, Theme, Typography } from '@material-ui/core'
+import { makeStyles, Paper, Theme } from '@material-ui/core'
 import React, { FC, memo } from 'react'
 import { IArrayItem } from '../model'
 import ArrayElementPlaceholder from './ArrayElementPlaceholder'
