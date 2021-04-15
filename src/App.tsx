@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { makeStyles, Theme } from '@material-ui/core'
+import React, { useCallback, useMemo, useState } from 'react'
+import { Box, makeStyles, Theme, Typography } from '@material-ui/core'
 import { useAction, useAtom } from '@reatom/react'
 import {
   blinkReaction,
@@ -17,7 +17,11 @@ import { useForceUpdate } from './hooks'
 import ArrayContainerPortal from './components/ArrayContainerPortal'
 import { sleep } from './helpers'
 import TutorialText from './components/TutorialText'
-import { animated, config, useSprings, UseSpringsProps } from 'react-spring'
+import { animated, config, Spring, useTrail } from 'react-spring'
+import ResultArray from './components/ResultArray'
+import PlayButton from './components/PlayButton'
+import CountingArray from './components/CountingArray'
+import InitialArray from './components/InitialArray'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -54,10 +58,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 const App = () => {
   const classes = useStyles()
   const forceUpdate = useForceUpdate()
-  const [updateCount, setUpdateCount] = useState(0)
-  const [ready, setReady] = useState(false)
+  const [done, setDone] = useState(false)
   const [disabled, setDisabled] = useState(false)
-  const [mainTitleActive, setMainTitleActive] = useState(true)
 
   const atom = useAtom(rootAtom)
   const moveContainer = useAction(moveContainerAction)
@@ -216,120 +218,60 @@ const App = () => {
         initialArrCopy
       )
       setDisabled(false)
-      yield
+      if (i !== initialArr.length -1) yield
     }
+    setDone(true)
   }, [])
 
   const generator = useMemo(() => steps(), [])
 
-  // useEffect(() => {
-  //   if (updateCount < 2) {
-  //     forceUpdate()
-  //     setUpdateCount(updateCount + 1)
-  //   } else {
-  //     setReady(true)
-  //   }
-  // }, [updateCount])
+  const algorithmComponents = [
+    <PlayButton disabled={disabled || done} onClick={() => generator.next()} />,
+    <InitialArray state={atom.initialArray} />,
+    <CountingArray state={atom.countingArray} />,
+    <ResultArray state={atom.resultArray} />
+  ]
 
-  useEffect(() => {
-    ;(async () => {
-      await sleep(5000)
-      setMainTitleActive(false)
-    })()
-  }, [])
-
-  interface IShowcaseItems {
-    [key: string]: {
-      component: React.ReactElement
-      props: UseSpringsProps
-    }
-  }
-
-  const showcaseItems: IShowcaseItems = {
-    text_0: {
-      component: <TutorialText text={'Алгоритм сортировки подсчётом'} />,
-      props: {
-        from: { opacity: 0 },
-        to: { opacity: 1 }
-      }
-    }
-    // text_1: {
-    //   component: <TutorialText text={'Представим, что данные, которые нужно отсортировать, находятся в пределах от 0 до 9.'}/>,
-    //   props: {
-    //     from: { opacity: 0 },
-    //     to: { opacity: 1 }
-    //   }
-    // },
-    // playButton: {
-    //   component: <PlayButton disabled={disabled} onClick={() => generator.next()}/>,
-    //   props: {
-    //     from: { opacity: 0 },
-    //     to: { opacity: 1 },
-    //     delay: 1000
-    //   }
-    // },
-    // initialArray: {
-    //   component: <InitialArray state={atom.initialArray}/>,
-    //   props: {
-    //     from: { opacity: 0 },
-    //     to: { opacity: 1 },
-    //     delay: 2000
-    //   }
-    // },
-    // countingArray: {
-    //   component: <CountingArray state={atom.countingArray}/>,
-    //   props: {
-    //     from: { opacity: 0 },
-    //     to: { opacity: 1 },
-    //     delay: 2000
-    //   }
-    // },
-    // resultArray: {
-    //   component: <ResultArray state={atom.resultArray}/>,
-    //   props: {
-    //     from: { opacity: 0 },
-    //     to: { opacity: 1 },
-    //     delay: 2000
-    //   }
-    // }
-  }
-
-  const showcaseItemsArray = Object.values(showcaseItems)
-
-  const springs = useSprings(
-    showcaseItemsArray.length,
-    showcaseItemsArray.map(item => ({ config: config.molasses, ...item.props }))
-  )
-
-  const algorithmShowcase = (
-    <div className={classes.content}>
-      {springs.map((props, index) => {
-        return (
-          <animated.div style={props} key={index}>
-            {showcaseItemsArray[index].component}
-          </animated.div>
-        )
-      })}
-    </div>
-  )
+  const trail = useTrail(algorithmComponents.length, {
+    config: config.gentle,
+    from: { opacity: 0 },
+    to: { opacity: 1 },
+    onStart: () => forceUpdate(),
+    delay: 3000
+  })
 
   return (
     <div className={classes.root}>
-      {mainTitleActive ? (
-        <div className={classes.mainTitle}>
-          <TutorialText text={'Алгоритм сортировки подсчётом'} />
+      <>
+        <div className={classes.mainContainer}>
+          <div className={classes.content}>
+            <TutorialText text={'Алгоритм сортировки подсчётом'} />
+            {trail.map((props, index) => (
+              <animated.div style={props} key={index}>
+                {algorithmComponents[index]}
+              </animated.div>
+            ))}
+            {done && <Spring
+              config={config.wobbly}
+              from={{ transform: `scale(0)` }}
+              to={{ transform: `scale(1)` }}>
+              {props => (
+                <animated.div style={props}>
+                  <Box fontWeight={700} color={'success.main'}>
+                    <Typography variant={'h3'} color={'inherit'}>Массив отсортирован!</Typography>
+                  </Box>
+                </animated.div>
+              )}
+            </Spring>}
+          </div>
         </div>
-      ) : (
-        <>
-          <div className={classes.mainContainer}>{algorithmShowcase}</div>
-          {atom.containers.map((item, index) => (
-            <ArrayContainerPortal key={index} index={index} container={item.containerRef.current} />
-          ))}
-          {atom.elements.map((item, index) => (
-            <ArrayElementPortal key={index} index={index} container={item.containerRef.current} />
-          ))}
-        </>
-      )}
+        {atom.containers.map((item, index) => (
+          <ArrayContainerPortal key={index} index={index} container={item.containerRef.current} />
+        ))}
+        {atom.elements.map((item, index) => (
+          <ArrayElementPortal key={index} index={index} container={item.containerRef.current} />
+        ))}
+      </>
     </div>
   )
 }
